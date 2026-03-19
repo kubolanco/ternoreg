@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Terno Streak</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: linear-gradient(135deg, #eef2f7, #dfe6ef);
+  text-align: center;
+  padding: 30px;
+}
+
+h1 { margin-bottom: 20px; }
+
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 16px;
+  max-width: 320px;
+  margin: 15px auto;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.streak {
+  font-size: 64px;
+  font-weight: bold;
+  color: #4CAF50;
+  transition: transform 0.3s;
+}
+
+.progress {
+  height: 10px;
+  background: #eee;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 15px;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #4CAF50;
+  width: 0%;
+  transition: width 0.4s;
+}
+
+button {
+  padding: 14px 20px;
+  margin: 10px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.good { background: #4CAF50; color: white; }
+.bad { background: #f44336; color: white; }
+
+.shake { animation: shake 0.4s; }
+@keyframes shake {
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+}
+
+.small { color: #666; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h1>Terno Streak</h1>
+
+<div class="card">
+  <div id="streak" class="streak">0</div>
+  <div>Current streak</div>
+
+  <div class="progress">
+    <div id="bar" class="progress-bar"></div>
+  </div>
+
+  <div class="small">Next freeze in <span id="next">7</span> days</div>
+</div>
+
+<div class="card">
+  <div>Best: <span id="best">0</span></div>
+  <div>Freezes: <span id="freeze">1</span></div>
+</div>
+
+<button class="good" onclick="success()">I resisted today</button>
+<button class="bad" onclick="fail()">I went to Terno</button>
+
+<div id="status" class="small"></div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("ternoData")) || {
+  streak: 0,
+  best: 0,
+  freeze: 1,
+  lastCheck: null,
+  lastOpen: null
+};
+
+function today() {
+  return new Date().toDateString();
+}
+
+function updateUI() {
+  document.getElementById("streak").innerText = data.streak;
+  document.getElementById("best").innerText = data.best;
+  document.getElementById("freeze").innerText = data.freeze;
+
+  let progress = data.streak % 7;
+  let percent = (progress / 7) * 100;
+
+  document.getElementById("bar").style.width = percent + "%";
+  document.getElementById("next").innerText = 7 - progress;
+}
+
+function save() {
+  localStorage.setItem("ternoData", JSON.stringify(data));
+  updateUI();
+}
+
+function showStatus(msg) {
+  document.getElementById("status").innerText = msg;
+}
+
+function success() {
+  if (data.lastCheck === today()) {
+    showStatus("Already checked today");
+    return;
+  }
+
+  data.streak++;
+  if (data.streak > data.best) data.best = data.streak;
+
+  if (data.streak % 7 === 0) {
+    data.freeze++;
+    showStatus("Reward earned");
+  } else {
+    showStatus("Progress saved");
+  }
+
+  data.lastCheck = today();
+  save();
+}
+
+function fail() {
+  if (data.lastCheck === today()) {
+    showStatus("Already checked today");
+    return;
+  }
+
+  let card = document.querySelector(".card");
+
+  if (data.freeze > 0) {
+    data.freeze--;
+    showStatus("Protected by freeze");
+  } else {
+    data.streak = 0;
+    card.classList.add("shake");
+    setTimeout(() => card.classList.remove("shake"), 400);
+    showStatus("Streak lost");
+  }
+
+  data.lastCheck = today();
+  save();
+}
+
+/* 🔔 Reminder system */
+function checkReminder() {
+  if (data.lastCheck !== today()) {
+    showStatus("You haven’t checked in today");
+    
+    if (Notification.permission === "granted") {
+      new Notification("Terno Streak", {
+        body: "Don’t forget your streak today"
+      });
+    }
+  }
+}
+
+/* Ask for notification permission */
+function requestNotif() {
+  if ("Notification" in window) {
+    Notification.requestPermission();
+  }
+}
+
+data.lastOpen = today();
+save();
+updateUI();
+
+requestNotif();
+setTimeout(checkReminder, 2000);
+</script>
+
+</body>
+</html>
+
+/* Vibecoded for my unhealthy habit */
