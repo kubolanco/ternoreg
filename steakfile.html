@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <title>Terno Streak</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4CAF50">
+
+<link rel="manifest" href="manifest.json">
+
 <style>
 body {
   font-family: Arial;
@@ -27,7 +32,6 @@ h1 { margin-bottom: 20px; }
   font-size: 64px;
   font-weight: bold;
   color: #4CAF50;
-  transition: transform 0.3s;
 }
 
 .progress {
@@ -56,16 +60,17 @@ button {
 .good { background: #4CAF50; color: white; }
 .bad { background: #f44336; color: white; }
 
+.small { color: #666; margin-top: 10px; }
+
 .shake { animation: shake 0.4s; }
 @keyframes shake {
   25% { transform: translateX(-5px); }
   50% { transform: translateX(5px); }
   75% { transform: translateX(-5px); }
 }
-
-.small { color: #666; margin-top: 10px; }
 </style>
 </head>
+
 <body>
 
 <h1>Terno Streak</h1>
@@ -96,8 +101,7 @@ let data = JSON.parse(localStorage.getItem("ternoData")) || {
   streak: 0,
   best: 0,
   freeze: 1,
-  lastCheck: null,
-  lastOpen: null
+  lastCheck: null
 };
 
 function today() {
@@ -110,9 +114,7 @@ function updateUI() {
   document.getElementById("freeze").innerText = data.freeze;
 
   let progress = data.streak % 7;
-  let percent = (progress / 7) * 100;
-
-  document.getElementById("bar").style.width = percent + "%";
+  document.getElementById("bar").style.width = (progress / 7 * 100) + "%";
   document.getElementById("next").innerText = 7 - progress;
 }
 
@@ -136,7 +138,7 @@ function success() {
 
   if (data.streak % 7 === 0) {
     data.freeze++;
-    showStatus("Reward earned");
+    showStatus("Freeze earned");
   } else {
     showStatus("Progress saved");
   }
@@ -155,7 +157,7 @@ function fail() {
 
   if (data.freeze > 0) {
     data.freeze--;
-    showStatus("Protected by freeze");
+    showStatus("Freeze used");
   } else {
     data.streak = 0;
     card.classList.add("shake");
@@ -167,35 +169,18 @@ function fail() {
   save();
 }
 
-/* 🔔 Reminder system */
-function checkReminder() {
-  if (data.lastCheck !== today()) {
-    showStatus("You haven’t checked in today");
-    
-    if (Notification.permission === "granted") {
-      new Notification("Terno Streak", {
-        body: "Don’t forget your streak today"
-      });
-    }
-  }
+/* 🔔 Ask permission */
+if ("Notification" in window) {
+  Notification.requestPermission();
 }
 
-/* Ask for notification permission */
-function requestNotif() {
-  if ("Notification" in window) {
-    Notification.requestPermission();
-  }
+/* 🔧 Register service worker */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
 }
 
-data.lastOpen = today();
-save();
 updateUI();
-
-requestNotif();
-setTimeout(checkReminder, 2000);
 </script>
 
 </body>
 </html>
-
-
